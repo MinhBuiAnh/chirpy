@@ -133,3 +133,54 @@ func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, r *http.Request) 
 	}
 	respondWithJSON(w, http.StatusCreated, resBody)
 }
+
+func (cfg *apiConfig) handleGetChirpById(w http.ResponseWriter, r *http.Request) {
+	pathVal := r.PathValue("chirpId")
+
+	w.Header().Set("Content-Type", "application/json")
+
+	chirpId, err := uuid.Parse(pathVal)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, errorMessage)
+		return
+	}
+
+	chirp, err := cfg.db.GetChirpById(r.Context(), chirpId)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, http.StatusText(http.StatusNotFound))
+		return
+	}
+
+	resBody := Chirp{
+		ID: chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body: chirp.Body,
+		UserID: chirp.UserID,
+	}
+	respondWithJSON(w, http.StatusOK, resBody)
+}
+
+func (cfg *apiConfig) handleGetAllChirps(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	chirps, err := cfg.db.GetAllChirps(r.Context())
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, errorMessage)
+		return
+	}
+
+	var resBody []Chirp
+	for _, chirp := range chirps {
+		newChirp := Chirp{
+			ID: chirp.ID,
+			CreatedAt: chirp.CreatedAt,
+			UpdatedAt: chirp.UpdatedAt,
+			Body: chirp.Body,
+			UserID: chirp.UserID,
+		}
+		resBody = append(resBody, newChirp)
+	}
+
+	respondWithJSON(w, http.StatusOK, resBody)
+}
