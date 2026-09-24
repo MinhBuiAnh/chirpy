@@ -1,12 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync/atomic"
 	"time"
 
+	"github.com/MinhBuiAnh/chirpy/internal/auth"
 	"github.com/MinhBuiAnh/chirpy/internal/database"
 	"github.com/google/uuid"
 )
@@ -51,6 +53,7 @@ func (cfg *apiConfig) handleReset(w http.ResponseWriter, r *http.Request) {
 func (cfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	type reqParams struct {
 		Email string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -63,11 +66,22 @@ func (cfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	hashedPassword, err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, errorMessage)
+		return
+	}
+
+	passwordParam := sql.NullString{
+		String: hashedPassword,
+		Valid: true,
+	}
 	dbParams := database.CreateUserParams{
 		ID: uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 		Email: params.Email,
+		HashedPassword: passwordParam,
 	}
 	user, err := cfg.db.CreateUser(r.Context(), dbParams)
 	if err != nil {
@@ -82,6 +96,42 @@ func (cfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		Email: user.Email,
 	}
 	respondWithJSON(w, http.StatusCreated, resBody)
+}
+
+func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
+	type reqParams struct {
+		Email string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	params := reqParams{}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := decoder.Decode(&params); err != nil {
+		respondWithError(w, http.StatusInternalServerError, errorMessage)
+		return
+	}
+
+	user, err := cfg.db.GetUserByEmail(r.Context(), params.Email)
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, http.StatusText(http.StatusNotFound))
+	}
+
+	match, err := auth.CheckPasswordHash(params.Password, user.HashedPassword.String)
+	if err != nil || !match {
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password")
+		return
+	}
+
+	resBody := User{
+		ID: user.ID,
+		CreatedAt: user.CreatedAt,
+		UpdatedAt: user.UpdatedAt,
+		Email: user.Email,
+	}
+	respondWithJSON(w, http.StatusOK, resBody)
 }
 
 func (cfg *apiConfig) handleCreateChirp(w http.ResponseWriter, r *http.Request) {
