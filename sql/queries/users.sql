@@ -17,3 +17,8 @@ RETURNING *;
 
 -- name: DeleteAllUsers :exec
 DELETE FROM users;
+
+-- name: UpgradeChirpyRedById :exec
+UPDATE users
+SET is_chirpy_red = true
+WHERE id = $1;

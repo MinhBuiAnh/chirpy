@@ -13,4 +13,5 @@ type User struct {
 	Email string `json:"email"`
 	Token string `json:"token"`
 	RefreshToken string `json:"refresh_token"`
+	IsChirpyRed bool `json:"is_chirpy_red"`
 }

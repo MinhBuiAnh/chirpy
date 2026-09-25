@@ -15,6 +15,7 @@ type apiConfig struct {
 	db *database.Queries
 	platform string
 	secret string
+	apiKey string
 }
 
 // FUNCTIONS FOR METRICS OPERATION

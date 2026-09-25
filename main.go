@@ -18,6 +18,7 @@ func main() {
 	dbUrl := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
 	secret := os.Getenv("SECRET")
+	apiKey := os.Getenv("POLKA_KEY")
 
 	// Connect to the database
 	db, err := sql.Open("postgres", dbUrl)
@@ -35,6 +36,7 @@ func main() {
 		db: database.New(db),
 		platform: platform,
 		secret: secret,
+		apiKey: apiKey,
 	}
 	
 	mux.Handle("/app", cfg.middlewareMetricsInc(http.StripPrefix("/app", http.FileServer(http.Dir(filepathRoot)))))
@@ -52,6 +54,8 @@ func main() {
 	mux.HandleFunc("GET /api/chirps", cfg.handleGetAllChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpId}", cfg.handleGetChirpById)
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", cfg.handleDeleteChirpById)
+
+	mux.HandleFunc("POST /api/polka/webhooks", cfg.handlePolkaWebhook)
 
 	mux.HandleFunc("GET /admin/metrics", cfg.handleMetrics)
 	mux.HandleFunc("POST /admin/reset", cfg.handleReset)

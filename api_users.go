@@ -54,6 +54,7 @@ func (cfg *apiConfig) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 		Email: user.Email,
+		IsChirpyRed: user.IsChirpyRed.Bool,
 	}
 	respondWithJSON(w, http.StatusCreated, resBody)
 }
@@ -115,6 +116,7 @@ func (cfg *apiConfig) handleLogin(w http.ResponseWriter, r *http.Request) {
 		Email: user.Email,
 		Token: token,
 		RefreshToken: refreshTokenString,
+		IsChirpyRed: user.IsChirpyRed.Bool,
 	}
 	respondWithJSON(w, http.StatusOK, resBody)
 }
@@ -174,7 +176,7 @@ func (cfg *apiConfig) handleUpdateEmailPassword(w http.ResponseWriter, r *http.R
 		UpdatedAt: userUpdated.UpdatedAt,
 		Email: userUpdated.Email,
 		Token: tokenString,
-		RefreshToken: "",
+		IsChirpyRed: userUpdated.IsChirpyRed.Bool,
 	}
 	respondWithJSON(w, http.StatusOK, resBody)
 }
