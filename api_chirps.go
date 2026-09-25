@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/MinhBuiAnh/chirpy/internal/auth"
@@ -93,13 +94,32 @@ func (cfg *apiConfig) handleGetChirpById(w http.ResponseWriter, r *http.Request)
 	respondWithJSON(w, http.StatusOK, resBody)
 }
 
-func (cfg *apiConfig) handleGetAllChirps(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handleGetChirps(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	chirps, err := cfg.db.GetAllChirps(r.Context())
-	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, errorMessage)
-		return
+	authorId := r.URL.Query().Get("author_id")
+	sortingOrder := r.URL.Query().Get("sort")
+	var chirps []database.Chirp
+
+	if authorId == "" { // Get all chirps in the database
+		var err error
+		chirps, err = cfg.db.GetAllChirps(r.Context())
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, errorMessage)
+			return
+		}
+	} else {
+		parsedAuthorId, err := uuid.Parse(authorId)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, errorMessage)
+			return
+		}
+
+		chirps, err = cfg.db.GetChirpsByUserId(r.Context(), parsedAuthorId)
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, errorMessage)
+			return
+		}
 	}
 
 	var resBody []Chirp
@@ -112,6 +132,16 @@ func (cfg *apiConfig) handleGetAllChirps(w http.ResponseWriter, r *http.Request)
 			UserID: chirp.UserID,
 		}
 		resBody = append(resBody, newChirp)
+	}
+
+	if sortingOrder == "desc" { // Sort in descending order
+		sort.SliceStable(resBody, func(i, j int) bool {
+			return resBody[i].CreatedAt.After(resBody[j].CreatedAt)
+		})
+	} else { // Sort in descending order, default to this when no sort param found
+		sort.SliceStable(resBody, func(i, j int) bool {
+			return resBody[i].CreatedAt.Before(resBody[j].CreatedAt)
+		})
 	}
 
 	respondWithJSON(w, http.StatusOK, resBody)

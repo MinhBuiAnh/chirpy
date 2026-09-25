@@ -51,7 +51,7 @@ func main() {
 	mux.HandleFunc("POST /api/revoke", cfg.handleRevokeToken)
 
 	mux.HandleFunc("POST /api/chirps", cfg.handleCreateChirp)
-	mux.HandleFunc("GET /api/chirps", cfg.handleGetAllChirps)
+	mux.HandleFunc("GET /api/chirps", cfg.handleGetChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpId}", cfg.handleGetChirpById)
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", cfg.handleDeleteChirpById)
 
